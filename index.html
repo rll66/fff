@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>猜数字 · Number Quest</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b1020; --panel: rgba(20, 29, 52, .86); --line: rgba(148,163,184,.2);
+      --text: #f1f5f9; --muted: #9aa9c0; --blue: #7dd3fc; --violet: #a78bfa;
+      --green: #86efac; --amber: #fcd34d; --red: #fda4af;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(ellipse at 15% 10%, rgba(59,130,246,.22), transparent 35%),
+        radial-gradient(ellipse at 85% 85%, rgba(139,92,246,.20), transparent 35%), var(--bg);
+      display: grid; place-items: center; padding: 24px;
+    }
+    .app { width: min(100%, 760px); }
+    header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; }
+    .brand { display:flex; align-items:center; gap:12px; }
+    .logo { display:grid; place-items:center; width:48px;height:48px;border-radius:16px;background:linear-gradient(135deg,#38bdf8,#8b5cf6);font-size:24px;box-shadow:0 8px 30px #38bdf833; }
+    h1 { font-size: clamp(24px,4vw,34px); margin:0; letter-spacing:-.04em; }
+    .subtitle { color:var(--muted); font-size:13px; margin-top:3px; }
+    .sound-btn { border:1px solid var(--line); background:#ffffff08; color:var(--text); border-radius:12px; padding:10px 13px; cursor:pointer; }
+    .layout { display:grid; grid-template-columns: 1.2fr .8fr; gap:16px; }
+    .panel { background:var(--panel); border:1px solid var(--line); border-radius:24px; padding:clamp(18px,4vw,28px); box-shadow:0 20px 60px #0003; backdrop-filter: blur(12px); }
+    .eyebrow { color:var(--blue); text-transform:uppercase; letter-spacing:.14em; font-size:11px; font-weight:800; }
+    .topline { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .pill { font-size:12px; color:var(--muted); border:1px solid var(--line); padding:6px 10px; border-radius:999px; white-space:nowrap; }
+    .range { margin:14px 0 20px; color:var(--muted); font-size:14px; }
+    .number-display { display:grid; place-items:center; min-height:145px; margin:10px 0 18px; border:1px solid #7dd3fc30; border-radius:20px; background:linear-gradient(135deg,#38bdf80b,#a78bfa12); position:relative; overflow:hidden; }
+    .number-display:before { content:"";position:absolute;width:180px;height:180px;border:1px solid #7dd3fc1c;border-radius:50%; }
+    .number-display:after { content:"";position:absolute;width:120px;height:120px;border:1px solid #a78bfa25;border-radius:50%; }
+    #bigNumber { position:relative; z-index:1; font-size:clamp(52px,10vw,78px);font-weight:850;letter-spacing:-.06em;line-height:1; background:linear-gradient(120deg,#e0f2fe,#c4b5fd);color:transparent;background-clip:text; }
+    .hint { min-height:26px; font-weight:700; text-align:center; color:var(--blue); }
+    .hint.good { color:var(--green); } .hint.warn { color:var(--amber); } .hint.bad { color:var(--red); }
+    .controls { display:flex; gap:10px; margin-top:14px; }
+    input[type=number] { min-width:0; flex:1; background:#080d1a; border:1px solid var(--line); color:var(--text); padding:14px 15px; border-radius:13px; font-size:16px; outline:none; }
+    input:focus, select:focus { border-color:var(--blue); box-shadow:0 0 0 3px #7dd3fc20; }
+    button { font:inherit; }
+    .primary { border:0; color:#08111f; font-weight:800; padding:0 20px; border-radius:13px; background:linear-gradient(120deg,#7dd3fc,#a78bfa); cursor:pointer; transition:transform .16s,filter .16s; }
+    .primary:hover { filter:brightness(1.08); transform:translateY(-1px); }
+    button:disabled { opacity:.45; cursor:not-allowed; transform:none; }
+    .secondary { border:1px solid var(--line); color:var(--text); background:#ffffff08; padding:11px 14px; border-radius:12px; cursor:pointer; }
+    .settings { display:grid; gap:16px; }
+    label { display:block; font-size:13px; color:var(--muted); margin-bottom:8px; }
+    select { width:100%; background:#080d1a; color:var(--text); border:1px solid var(--line); border-radius:12px; padding:12px; font:inherit; }
+    .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .stat { background:#ffffff06; border:1px solid var(--line); border-radius:16px; padding:15px; }
+    .stat .value { font-size:25px; font-weight:800; margin-top:6px; }
+    .stat .label { color:var(--muted); font-size:12px; }
+    .record-line { display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:13px; color:var(--muted); margin-top:14px; }
+    .record-line strong { color:var(--text); }
+    .history { margin-top:18px; }
+    .history-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+    .history-head h2 { font-size:14px; margin:0; }
+    #history { display:flex; flex-wrap:wrap; gap:7px; min-height:30px; }
+    .guess-chip { padding:7px 10px; border-radius:10px; background:#ffffff0a; border:1px solid var(--line); font-size:13px; animation:pop .25s ease-out; }
+    .guess-chip.high { color:var(--amber); } .guess-chip.low { color:var(--blue); } .guess-chip.correct { color:var(--green); border-color:#86efac55; }
+    .footer { text-align:center; color:#71809a; font-size:12px; margin-top:18px; }
+    .shake { animation:shake .32s ease-in-out; } .bounce { animation:bounce .45s ease-out; }
+    .win { animation:winGlow .9s ease-in-out 2; }
+    @keyframes pop { from {opacity:0;transform:scale(.8) translateY(5px)} to {opacity:1;transform:scale(1) translateY(0)} }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+    @keyframes bounce { 0%{transform:scale(.8)} 60%{transform:scale(1.08)} 100%{transform:scale(1)} }
+    @keyframes winGlow { 0%,100%{box-shadow:0 0 0 #86efac00} 50%{box-shadow:0 0 40px #86efac28} }
+    @media (max-width:640px) { body{padding:14px}.layout{grid-template-columns:1fr}header{align-items:flex-start}.panel{border-radius:20px}.number-display{min-height:125px}.primary{padding:0 16px} }
+    @media (prefers-reduced-motion:reduce) { *,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important} }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true">✦</div>
+        <div><h1>猜数字</h1><div class="subtitle">NUMBER QUEST · 找到隐藏答案</div></div>
+      </div>
+      <button class="sound-btn" id="soundToggle" type="button" aria-pressed="true">🔊 音效开</button>
+    </header>
+
+    <div class="layout">
+      <section class="panel" id="gamePanel">
+        <div class="topline"><div class="eyebrow">READY PLAYER ONE</div><div class="pill" id="roundLabel">第 1 局</div></div>
+        <div class="range" id="rangeText">答案藏在 1 到 100 之间</div>
+        <div class="number-display" id="numberDisplay"><div id="bigNumber">?</div></div>
+        <div class="hint" id="hint" role="status" aria-live="polite">输入一个数字，开始挑战吧！</div>
+        <form id="guessForm" class="controls">
+          <input id="guessInput" type="number" inputmode="numeric" min="1" max="100" placeholder="输入你的猜测…" autocomplete="off" required>
+          <button class="primary" id="guessButton" type="submit">猜一下 ↗</button>
+        </form>
+        <div class="controls">
+          <button class="secondary" id="newGame" type="button">↻ 新的一局</button>
+          <button class="secondary" id="giveUp" type="button">查看答案</button>
+        </div>
+        <div class="history">
+          <div class="history-head"><h2>本局猜测记录</h2><span class="pill" id="attemptLabel">0 次</span></div>
+          <div id="history"><span class="subtitle">你的猜测会显示在这里。</span></div>
+        </div>
+      </section>
+
+      <aside class="settings">
+        <section class="panel">
+          <div class="eyebrow">GAME SETTINGS</div>
+          <div style="margin-top:18px">
+            <label for="difficulty">选择难度</label>
+            <select id="difficulty">
+              <option value="easy">简单 · 1–50</option>
+              <option value="normal" selected>普通 · 1–100</option>
+              <option value="hard">困难 · 1–500</option>
+              <option value="expert">专家 · 1–1000</option>
+            </select>
+          </div>
+          <div class="record-line"><span>当前范围</span><strong id="rangeValue">1–100</strong></div>
+          <div class="record-line"><span>本局最佳可能次数</span><strong id="parValue">7 次左右</strong></div>
+        </section>
+        <section class="panel">
+          <div class="eyebrow">YOUR STATS</div>
+          <div class="stat-grid" style="margin-top:16px">
+            <div class="stat"><div class="label">本局次数</div><div class="value" id="statAttempts">0</div></div>
+            <div class="stat"><div class="label">已完成局数</div><div class="value" id="statRounds">0</div></div>
+          </div>
+          <div class="record-line"><span>本难度最高纪录</span><strong id="bestRecord">暂无纪录</strong></div>
+          <div class="record-line"><span>历史最快猜中</span><strong id="bestOverall">暂无纪录</strong></div>
+          <button class="secondary" id="clearRecords" type="button" style="width:100%;margin-top:16px">清除最高纪录</button>
+        </section>
+      </aside>
+    </div>
+    <div class="footer">进度保存在此浏览器中 · 使用本地存储，不会上传数据</div>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+      const levels = {
+        easy:   { min: 1, max: 50, label: "简单" },
+        normal: { min: 1, max: 100, label: "普通" },
+        hard:   { min: 1, max: 500, label: "困难" },
+        expert: { min: 1, max: 1000, label: "专家" }
+      };
+      const $ = id => document.getElementById(id);
+      const difficulty = $("difficulty"), guessInput = $("guessInput");
+      const guessForm = $("guessForm"), guessButton = $("guessButton");
+      const hint = $("hint"), history = $("history"), numberDisplay = $("numberDisplay");
+      const bigNumber = $("bigNumber"), gamePanel = $("gamePanel");
+      const soundToggle = $("soundToggle");
+      let level = "normal", answer = 0, attempts = 0, rounds = 0, round = 1;
+      let finished = false, soundOn = true, audioContext = null, guesses = [];
+
+      const safeRead = () => {
+        try { return JSON.parse(localStorage.getItem("numberQuestRecords") || "{}"); }
+        catch { return {}; }
+      };
+      let records = safeRead();
+      function saveRecords() {
+        try { localStorage.setItem("numberQuestRecords", JSON.stringify(records)); }
+        catch { setHint("浏览器未允许保存纪录；本局仍可正常游戏。", "warn"); }
+      }
+      function playTone(freq, duration = .12, type = "sine", volume = .045, delay = 0) {
+        if (!soundOn) return;
+        try {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (!AudioCtx) return;
+          audioContext ||= new AudioCtx();
+          if (audioContext.state === "suspended") audioContext.resume();
+          const osc = audioContext.createOscillator(), gain = audioContext.createGain();
+          osc.type = type; osc.frequency.setValueAtTime(freq, audioContext.currentTime + delay);
+          gain.gain.setValueAtTime(volume, audioContext.currentTime + delay);
+          gain.gain.exponentialRampToValueAtTime(.001, audioContext.currentTime + delay + duration);
+          osc.connect(gain); gain.connect(audioContext.destination);
+          osc.start(audioContext.currentTime + delay); osc.stop(audioContext.currentTime + delay + duration);
+        } catch (_) { /* 音频不可用时静默运行 */ }
+      }
+      function winSound() {
+        playTone(523.25,.16,"sine",.06,0);
+        playTone(659.25,.16,"sine",.06,.13);
+        playTone(783.99,.24,"sine",.06,.26);
+        playTone(1046.5,.32,"sine",.05,.43);
+      }
+      function setHint(message, kind = "") {
+        hint.textContent = message;
+        hint.className = "hint" + (kind ? " " + kind : "");
+      }
+      function bestFor(key) { return records[key] || null; }
+      function renderRecords() {
+        const current = bestFor(level);
+        $("bestRecord").textContent = current ? `${current.attempts} 次（${current.label}）` : "暂无纪录";
+        let best = null;
+        Object.entries(records).forEach(([key, rec]) => {
+          if (!best || rec.attempts < best.attempts) best = {...rec, key};
+        });
+        $("bestOverall").textContent = best ? `${best.attempts} 次（${best.label}）` : "暂无纪录";
+      }
+      function updateStats() {
+        $("statAttempts").textContent = attempts;
+        $("statRounds").textContent = rounds;
+        $("attemptLabel").textContent = `${attempts} 次`;
+        $("roundLabel").textContent = `第 ${round} 局`;
+        renderRecords();
+      }
+      function updateLevelUI() {
+        const cfg = levels[level];
+        $("rangeText").textContent = `答案藏在 ${cfg.min} 到 ${cfg.max} 之间`;
+        $("rangeValue").textContent = `${cfg.min}–${cfg.max}`;
+        $("parValue").textContent = `${Math.ceil(Math.log2(cfg.max - cfg.min + 1))} 次左右`;
+        guessInput.min = cfg.min; guessInput.max = cfg.max;
+        renderRecords();
+      }
+      function renderHistory() {
+        history.replaceChildren();
+        if (!guesses.length) {
+          const empty = document.createElement("span");
+          empty.className = "subtitle"; empty.textContent = "你的猜测会显示在这里。";
+          history.appendChild(empty); return;
+        }
+        guesses.forEach(g => {
+          const chip = document.createElement("span");
+          chip.className = "guess-chip " + g.kind;
+          chip.textContent = `${g.value} · ${g.text}`;
+          history.appendChild(chip);
+        });
+      }
+      function startGame(incrementRound = false) {
+        if (incrementRound) round++;
+        answer = Math.floor(Math.random() * (levels[level].max - levels[level].min + 1)) + levels[level].min;
+        attempts = 0; guesses = []; finished = false;
+        bigNumber.textContent = "?";
+        numberDisplay.classList.remove("win");
+        setHint("输入一个数字，开始挑战吧！");
+        guessInput.disabled = false; guessButton.disabled = false;
+        $("giveUp").disabled = false;
+        guessInput.value = ""; updateStats(); renderHistory();
+        guessInput.focus();
+      }
+      function finishGame(won, reveal = false) {
+        finished = true; rounds++;
+        guessInput.disabled = true; guessButton.disabled = true; $("giveUp").disabled = true;
+        bigNumber.textContent = answer;
+        if (won) {
+          setHint(`猜中了！你用了 ${attempts} 次，太棒了！`, "good");
+          numberDisplay.classList.add("win");
+          gamePanel.classList.add("bounce");
+          setTimeout(() => gamePanel.classList.remove("bounce"), 500);
+          winSound();
+          const old = bestFor(level);
+          if (!old || attempts < old.attempts) {
+            records[level] = { attempts, label: levels[level].label, date: new Date().toISOString() };
+            saveRecords();
+            setHint(`新纪录！${attempts} 次就猜中，厉害！`, "good");
+          }
+        } else if (reveal) {
+          setHint(`答案是 ${answer}，再来一局挑战自己吧！`, "warn");
+          playTone(280,.2,"triangle",.04);
+        }
+        updateStats();
+      }
+      guessForm.addEventListener("submit", event => {
+        event.preventDefault();
+        if (finished) return;
+        const raw = guessInput.value.trim(), guess = Number(raw);
+        const cfg = levels[level];
+        if (raw === "" || !Number.isInteger(guess)) {
+          setHint("请输入有效的整数。", "bad"); playTone(180,.1,"square",.025); guessInput.focus(); return;
+        }
+        if (guess < cfg.min || guess > cfg.max) {
+          setHint(`范围不对哦，请输入 ${cfg.min} 到 ${cfg.max}。`, "bad");
+          numberDisplay.classList.remove("shake"); void numberDisplay.offsetWidth; numberDisplay.classList.add("shake");
+          playTone(180,.1,"square",.025); guessInput.select(); return;
+        }
+        attempts++;
+        if (guess === answer) {
+          guesses.push({value:guess, text:"正确", kind:"correct"});
+          renderHistory(); finishGame(true); return;
+        }
+        if (guess > answer) {
+          setHint("猜大了！试试更小的数字。", "warn");
+          guesses.push({value:guess, text:"偏大", kind:"high"});
+          playTone(330,.09,"triangle",.035);
+        } else {
+          setHint("猜小了！试试更大的数字。", "");
+          guesses.push({value:guess, text:"偏小", kind:"low"});
+          playTone(440,.09,"triangle",.035);
+        }
+        renderHistory(); updateStats();
+        numberDisplay.classList.remove("shake"); void numberDisplay.offsetWidth; numberDisplay.classList.add("shake");
+        guessInput.value = ""; guessInput.focus();
+      });
+      $("newGame").addEventListener("click", () => { startGame(true); playTone(520,.08); });
+      $("giveUp").addEventListener("click", () => { if (!finished) finishGame(false, true); });
+      difficulty.addEventListener("change", () => {
+        level = difficulty.value; updateLevelUI(); startGame(false);
+        setHint(`已切换到${levels[level].label}难度，开始新挑战！`);
+      });
+      soundToggle.addEventListener("click", () => {
+        soundOn = !soundOn;
+        soundToggle.textContent = soundOn ? "🔊 音效开" : "🔇 音效关";
+        soundToggle.setAttribute("aria-pressed", String(soundOn));
+        if (soundOn) playTone(660,.1);
+      });
+      $("clearRecords").addEventListener("click", () => {
+        if (confirm("确定清除所有难度的最高纪录吗？此操作无法撤销。")) {
+          records = {}; saveRecords(); renderRecords(); setHint("最高纪录已清除。", "warn");
+        }
+      });
+      updateLevelUI();
+      startGame(false);
+    })();
+  </script>
+</body>
+</html>
